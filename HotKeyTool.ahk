@@ -34,21 +34,10 @@
 ; Tool will determine active window then wait for it before sending hotkey.
 ; ==============================================================================
 
-;Below coloring (8) lines are specific to Steve's setup.  If you see them, he apparently forgot to remove them. 
-SettingsFile := A_ScriptDir '\WayText\wtFiles\Settings.ini'
-gColor := iniread(SettingsFile, "MainSettings", "GUIcolor", "Default")
-lColor := iniread(SettingsFile, "MainSettings", "ListColor", "Default")
-fColor := iniread(SettingsFile, "MainSettings", "FontColor", "Default")
-;-----------------
-formColor := strReplace(subStr(gColor, -6), "efault", "Default")
-listColor := strReplace(subStr(lColor, -6), "efault", "Default")
-fontColor := strReplace(subStr(fColor, -6), "efault", "Default")
-
 ; ======= USER OPTIONS =========================================================
-; --- Below 3 color assignments should only be commented out for Steve.
-; formColor := "00233A" ; Use hex code if desired. Use "Default" for default.
-; listColor := "003E67"
-; fontColor := "31FFE7"
+formColor := "00233A" ; Use hex code if desired. Use "Default" for default.
+listColor := "003E67"
+fontColor := "31FFE7"
 mainHotkey := "!+q" ; main hotkey to show gui -- Alt+Shift+Q
 guiWidth := 600 ; Width of form. (At least 600 recommended, depending on font size.)
 maxRows := 16 ; Scroll if more row than this in listview
