@@ -5,13 +5,13 @@
 The tool will look running processes from the folder you specify (and subfolders thereof) and scan the same-named .ahk files. It will do a preliminary scan for #Included .ahk files, then scan all of those for hotkeys. See code for additional comments and user options.
 
 FROM CODE COMMENTS
-==============================================================================
+* ==============================================================================
 * Title:	    HotKey Lister, Filterer, and Launcher.
 * Author:	    Stephen Kunkel321, with help from Claude.ai
 * Version:	    8-3-2024
 * GitHub:       https://github.com/kunkel321/HotKey-Tool
 * AHK Forum:    https://www.autohotkey.com/boards/viewtopic.php?f=83&t=132224
-========= INFORMATION ========================================================
+* ========= INFORMATION ========================================================
 * Mostly it's just a list of the hotkeys in your running scripts.
 * Also can be used to launch them though.  Launches via "Sending" the hotkey.
 * Double-click item to launch it.  Enter key launches selected item.
