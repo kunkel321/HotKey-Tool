@@ -6,32 +6,32 @@ The tool will look running processes from the folder you specify (and subfolders
 
 FROM CODE COMMENTS
 * ==============================================================================
-* Title:	    HotKey Lister, Filterer, and Launcher.
+* Title:	    HotKey Lister, Filter'er, and Launcher.
 * Author:	    Stephen Kunkel321, with help from Claude.ai
-* Version:	    8-3-2024
+* Version:	    8-4-2024
 * GitHub:       https://github.com/kunkel321/HotKey-Tool
 * AHK Forum:    https://www.autohotkey.com/boards/viewtopic.php?f=83&t=132224
 * ========= INFORMATION ========================================================
-* Mostly it's just a list of the hotkeys in your running scripts.
+* Mostly it's just a "Cheetsheet" list of the hotkeys in your running scripts. 
 * Also can be used to launch them though.  Launches via "Sending" the hotkey.
-* Double-click item to launch it.  Enter key launches selected item.
-* Made for "portably-running" scripts.  Those are scripts where a copy of AutoHotkey.exe has been put in the same folder as the .ahk file.  
-* For example myScript.ahk and myScript.exe are both in the same folder. 
-* If the exe is a compiled version of the ahk, that should work too. 
+* Double-click an item to launch it.  Enter key launches selected item too.
+* Made for "portably-running" scripts.  Those are scripts where a copy of AutoHotkey.exe has been put in the same folder as the .ahk file and renamed to match it. For example myScript.ahk and myScript.exe are both in the same folder. 
+* If the exe is a compiled version of the ahk, then that should work too. 
 * It is actually the ahk file that gets searched for hotkeys.
-* Also the folder has to be a subfolder of the one specified below.
+* Also the folder has to be a subfolder of the one specified via ahkFolder variable.
 * Esc only hides form.  Must restart script to rescan hotkeys.
 * There's no point scanning files with no hotkeys, so add those to ignore list array.
-* Set your scripts up such that there is an in-line comment on each line of code that has a hotkey.  Use descriptive "search terms" in the comment.
-* To hide individual hotkeys from scan, include the work "hide" (without quotes) in the comment.  Lines of code are ignored if they...
-* - have the work 'hide'.
-* - have single or double quotes
+* Set your scripts up such that there is an in-line comment on each line of code
+* that has a hotkey.  Use descriptive "search terms" in the comment.
+* To hide individual hotkeys from scan, include the word "hide" (without quotes)in the comment.  Lines of code are ignored if they...
+* - have the word 'hide'.
+* - have single or double quotes.
 * - don't contain "::".
 * - do contain more than two colons.
 * The Filter Box is a ComboBox and can have pre-defined hotkey search filters. 
 * - Names of scripts are added automatically, to filter by containing script file.
-* - Additional filters can be added to array in USER OPTIONS below.PACE
+* - Additional filters can be added to array in USER OPTIONS below.
 * There are a few other options below as well.  See also, copious in-line comments.
-* Tool will determine active window then wait for it before activating hotkey.
+* Tool will determine active window then wait for it before sending hotkey.
 * ==============================================================================
 ![Screenshot of Hotkey Tool main form](https://i.imgur.com/GgTuK1l.png)
