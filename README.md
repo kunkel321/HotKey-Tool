@@ -11,7 +11,7 @@ FROM CODE COMMENTS
 ; GitHub:       https://github.com/kunkel321/HotKey-Tool
 ; AHK Forum:    https://www.autohotkey.com/boards/viewtopic.php?f=83&t=132224
 ; ========= INFORMATION ========================================================
-; Mostly it's just a list of the hotkeys in your running scripts. 
+; Mostly it's just a list of the hotkeys in your running scripts.
 ; Also can be used to launch them though.  Launches via "Sending" the hotkey.
 ; Double-click item to launch it.  Enter key launches selected item.
 ; Made for "portably-running" scripts.  Those are scripts where a copy
@@ -37,4 +37,4 @@ FROM CODE COMMENTS
 ; Tool will determine active window then wait for it before activating hotkey.
 ; ==============================================================================
 
-https://i.imgur.com/GgTuK1l.png
+![Screenshot of Hotkey Tool main form](https://i.imgur.com/GgTuK1l.png)
