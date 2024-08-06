@@ -8,7 +8,7 @@ FROM CODE COMMENTS
 * ==================================
 * Title:	    HotKey Lister, Filter'er, and Launcher.
 * Author:	    Stephen Kunkel321, with help from Claude.ai
-* Version:	    8-4-2024
+* Version:	    (version date is in code)
 * GitHub:       https://github.com/kunkel321/HotKey-Tool
 * AHK Forum:    https://www.autohotkey.com/boards/viewtopic.php?f=83&t=132224
 * ========= INFORMATION ============
