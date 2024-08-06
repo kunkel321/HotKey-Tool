@@ -8,7 +8,7 @@
 ; GitHub:       https://github.com/kunkel321/HotKey-Tool
 ; AHK Forum:    https://www.autohotkey.com/boards/viewtopic.php?f=83&t=132224
 ; ========= INFORMATION ========================================================
-; Mostly it's just a "Cheetsheet" list of the hotkeys in your running scripts. 
+; Mostly it's just a "Cheatsheet" list of the hotkeys in your running scripts. 
 ; Also can be used to launch them though.  Launches via "Sending" the hotkey.
 ; Double-click an item to launch it.  Enter key launches selected item too.
 ; Made for "portably-running" scripts.  Those are scripts where a copy
