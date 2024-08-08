@@ -4,11 +4,11 @@
 ; ==============================================================================
 ; Title:	    HotKey Lister, Filter'er, and Launcher.
 ; Author:	    Stephen Kunkel321, with help from Claude.ai
-; Version:	    8-8-2024 9:19am PST
+; Version:	    8-8-2024 2:54 pst
 ; GitHub:       https://github.com/kunkel321/HotKey-Tool
 ; AHK Forum:    https://www.autohotkey.com/boards/viewtopic.php?f=83&t=132224
 ; ========= INFORMATION ========================================================
-; Mostly it's just a "Cheatsheet" list of the hotkeys in your running scripts. 
+; Mostly it's just a "Cheetsheet" list of the hotkeys in your running scripts. 
 ; Also can be used to launch them though.  Launches via "Sending" the hotkey.
 ; Double-click an item to launch it.  Enter key launches selected item too.
 ; Made for "portably-running" scripts.  Those are scripts where a copy
@@ -34,11 +34,27 @@
 ; Tool will determine active window then wait for it before sending hotkey.
 ; ==============================================================================
 
+;Below coloring (8) lines are specific to Steve's setup.  If you see them, he apparently forgot to remove them. 
+SettingsFile := A_ScriptDir '\WayText\wtFiles\Settings.ini'
+gColor := iniread(SettingsFile, "MainSettings", "GUIcolor", "Default")
+lColor := iniread(SettingsFile, "MainSettings", "ListColor", "Default")
+fColor := iniread(SettingsFile, "MainSettings", "FontColor", "Default")
+;-----------------
+formColor := strReplace(subStr(gColor, -6), "efault", "Default")
+listColor := strReplace(subStr(lColor, -6), "efault", "Default")
+fontColor := strReplace(subStr(fColor, -6), "efault", "Default")
+If !FileExist(SettingsFile) {
+    MsgBox "So sorry... Steve forgot to remove the part that reads from his personal custom `"Settings.ini`" file.   Please go to the code and remove this portion, near the top.  (Hint: Probably lines of code " A_LineNumber-10 " through " A_LineNumber+2 ".)  Also be sure to `"uncomment-out`" the three color assignments in the USER OPTIONS.  Now exiting."
+    ExitApp
+}
+
 ; ======= USER OPTIONS =========================================================
-formColor := "00233A" ; Use hex code if desired. Use "Default" for default.
-listColor := "003E67"
-fontColor := "31FFE7"
+; --- Below 3 color assignments should only be commented out for Steve.
+; formColor := "00233A" ; Use hex code if desired. Use "Default" for default.
+; listColor := "003E67"
+; fontColor := "31FFE7"
 mainHotkey := "!+q" ; main hotkey to show gui -- Alt+Shift+Q
+StickyFilter := 0 ; 0 = Clear the filter box each time the gui is reshown.
 guiWidth := 600 ; Width of form. (At least 600 recommended, depending on font size.)
 maxRows := 24 ; Scroll if more row than this in listview
 guiTitle := "Hotkey Tool (Alt+Shift+Q)" ; Change (here only) if desired. 
@@ -208,10 +224,14 @@ showMyKeys(myKeys, guiTitle, guiWidth) {
 	}
     If WinActive(guiTitle) {
         myKeys.Hide() ; Makes hotkey work like a toggle.
+        global targetWindow := ""
         Return
     }
     Else {
+        If StickyFilter = 0
+            myKeys.hkFilter.Text := ""
         myKeys.Show("w" guiWidth + 28)
+        global targetWindow := ""
         myKeys.hkFilter.Focus() ; Focus filter box each time gui is shown. 
     }
 }
@@ -241,12 +261,12 @@ filterChange(hkFilter, hkList, hotkeys, StatBar, ahkFolder) {
     updateHkList(hkList, hotkeys, StatBar, ahkFolder, hkFilter.Text)
 }
 
-#HotIf WinActive(guiTitle) ; context-sensitive hotkeys
+; #HotIf WinActive(guiTitle) ; context-sensitive hotkeys
+#HotIf (myKeys.FocusedCtrl == myKeys.hkFilter) or (myKeys.FocusedCtrl == myKeys.hkList) ; context-sensitive hotkeys
     Enter::pressedEnter()
 #HotIf
 
 pressedEnter(*) {
-    WinWaitActive(guiTitle) ; Double-check because tool keeps hijacking Enter key. 
     runTool(myKeys.hkList, myKeys)
 }
 
