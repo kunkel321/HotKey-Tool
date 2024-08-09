@@ -4,11 +4,11 @@
 ; ==============================================================================
 ; Title:	    HotKey Lister, Filter'er, and Launcher.
 ; Author:	    Stephen Kunkel321, with help from Claude.ai
-; Version:	    8-8-2024 2:54 pst
+; Version:	    8-9-2024
 ; GitHub:       https://github.com/kunkel321/HotKey-Tool
 ; AHK Forum:    https://www.autohotkey.com/boards/viewtopic.php?f=83&t=132224
 ; ========= INFORMATION ========================================================
-; Mostly it's just a "Cheetsheet" list of the hotkeys in your running scripts. 
+; Mostly it's just a "Cheatsheet" list of the hotkeys in your running scripts. 
 ; Also can be used to launch them though.  Launches via "Sending" the hotkey.
 ; Double-click an item to launch it.  Enter key launches selected item too.
 ; Made for "portably-running" scripts.  Those are scripts where a copy
@@ -27,6 +27,9 @@
 ; - have single or double quotes.
 ; - don't contain "::".
 ; - do contain more than two colons.
+; Added later: Specify a folder which contain link (.lnk) files.  Those files will
+; get added to the list of hotkeys.  This tool will either 'Run()' the file, or
+; 'Send()' the hotkey. 
 ; The Filter Box is a ComboBox and can have pre-defined hotkey search filters. 
 ; - Names of scripts are added automatically, to filter by containing script file.
 ; - Additional filters can be added to array in USER OPTIONS below.
@@ -62,14 +65,20 @@ fontSize := 12 ; Don't include the 's'.
 trans := 255 ; Set 0 (transparent) to 255 (opaque).
 appIcon := "shell32.dll,278" ; icon of blue 'info' circle. 
 ahkFolder := "D:\AutoHotkey" ; We'll find the active hotkeys in scripts running from here.
+lnkFolder := "D:\AutoHotkey\AHK FaveLinks" ; Each .lnk file in this folder is added to list.
 ignoreList := ["AHK-ToolKit", "HotstringLib", "QuickSwitch", "mwClipboard"] ; We'll skip these files... 
-preDefinedFilters := ["#","!+","!^"] ; Pre-defined filters for the combobox. Add more? 
+preDefinedFilters := ["#","!+","!^","Link"] ; Pre-defined filters for the combobox. Add more? 
 debugMode := 0 ; 1=On.  Shows processes to be scanned, and target window.
 ; ==============================================================================
 
 If !DirExist(ahkFolder) { ; Make sure folder is there.
 	MsgBox "The folder `"" ahkFolder "`" doesn't seem to exist.  Please point the variable `"ahkFolder :=`" to the folder where your scripts are located. Now exiting"
 	ExitApp
+}
+
+if !DirExist(lnkFolder) { ; Make sure folder is there.
+    MsgBox "The folder `"" lnkFolder "`" doesn't exist. Please check the lnkFolder variable.  It should point to a folder full of .LNK files.  Those files should point to .EXE files. "
+    ExitApp
 }
 
 ; Determine if icon is .ico or library item, parse as needed.
@@ -166,6 +175,28 @@ GetHotkeys(scriptNames) {
 
 hotkeys := GetHotkeys(scriptNames)
 
+;Function to get the target of a shortcut file and add the shortcut names to the
+; array of hotkeys so they show up in the list box. 
+GetLinks() {
+    GetShortcutTarget(FilePath) {
+        objShell := ComObject("WScript.Shell")
+        objLink := objShell.CreateShortcut(FilePath)
+        return objLink.TargetPath
+    }
+
+    linkHotkeys := []
+    Loop Files, lnkFolder "\*.lnk"
+    {
+        target := GetShortcutTarget(A_LoopFilePath)
+        linkHotkeys.Push("Link::" A_LoopFileName " [" target "]")
+    }
+
+    return linkHotkeys
+}
+
+linkHotkeys := GetLinks()
+hotkeys.Push(linkHotkeys*)
+
 ; Function to get combo box list
 GetComboBoxList(scriptNames, preDefinedFilters) {
     justNames := []
@@ -185,7 +216,12 @@ justNames := GetComboBoxList(scriptNames, preDefinedFilters)
 myKeys := CreateGui(guiTitle, guiWidth, formColor, listColor, fontColor, fontSize, trans, maxRows, justNames, hotkeys, ahkFolder)
 
 ; The main hotkey calls this function.  
-hotkey(mainHotkey, (*) => showMyKeys(myKeys, guiTitle, guiWidth))
+Hotkey mainHotkey, ShowMyKeysWrapper
+
+ShowMyKeysWrapper(*)
+{
+    showMyKeys(myKeys, guiTitle, guiWidth)
+}
 
 ; Function to create GUI
 CreateGui(guiTitle, guiWidth, formColor, listColor, fontColor, fontSize, trans, maxRows, justNames, hotkeys, ahkFolder) {
@@ -216,20 +252,24 @@ CreateGui(guiTitle, guiWidth, formColor, listColor, fontColor, fontSize, trans, 
     return myKeys
 }
 
+; The hotkeys and link files get added to the array when the script starts, but this
+; function is each time the gui is re-shown.  
 showMyKeys(myKeys, guiTitle, guiWidth) {
-    global targetWindow := WinActive("A")  ; Get the handle of the currently active window
+    global targetWindow := WinActive("A") ; Get the handle of the currently active window
     global ThisWinTitle := WinGetTitle("ahk_id " targetWindow) ; remember win title so we can wait for it later...
-	If debugMode = 1 {
-		MsgBox "Target window: " ThisWinTitle
-	}
-    If WinActive(guiTitle) {
-        myKeys.Hide() ; Makes hotkey work like a toggle.
+    If debugMode = 1 {
+        MsgBox "Target window: " ThisWinTitle
+    }
+    If WinActive(guiTitle) { ; Causes fgui to hid, if already showing (I.e. toggle))
+        myKeys.Hide()
         global targetWindow := ""
         Return
     }
     Else {
-        If StickyFilter = 0
+        If StickyFilter = 0 {
             myKeys.hkFilter.Text := ""
+            filterChange(myKeys.hkFilter, myKeys.hkList, hotkeys, myKeys.StatBar, ahkFolder)
+        }
         myKeys.Show("w" guiWidth + 28)
         global targetWindow := ""
         myKeys.hkFilter.Focus() ; Focus filter box each time gui is shown. 
@@ -278,7 +318,12 @@ runTool(hkList, myKeys) {
         selectedRow := hkList.GetNext(0, "F")  ; Get the index of the selected row
         if (selectedRow > 0) {
             thisKey := hkList.GetText(selectedRow, 1)  ; Get the text from the first column (Hotkey)
-            SendInput thisKey
+            If SubStr(thisKey, 1, 4) = "Link"{
+                thisLink := hkList.GetText(selectedRow, 3) ; get third column, which is the taget path
+                Run(thisLink)
+            }
+            Else 
+                SendInput thisKey
         }
     }
     else
