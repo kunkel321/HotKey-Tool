@@ -37,25 +37,10 @@
 ; Tool will determine active window then wait for it before sending hotkey.
 ; ==============================================================================
 
-;Below coloring (8) lines are specific to Steve's setup.  If you see them, he apparently forgot to remove them. 
-SettingsFile := A_ScriptDir '\WayText\wtFiles\Settings.ini'
-gColor := iniread(SettingsFile, "MainSettings", "GUIcolor", "Default")
-lColor := iniread(SettingsFile, "MainSettings", "ListColor", "Default")
-fColor := iniread(SettingsFile, "MainSettings", "FontColor", "Default")
-;-----------------
-formColor := strReplace(subStr(gColor, -6), "efault", "Default")
-listColor := strReplace(subStr(lColor, -6), "efault", "Default")
-fontColor := strReplace(subStr(fColor, -6), "efault", "Default")
-If !FileExist(SettingsFile) {
-    MsgBox "So sorry... Steve forgot to remove the part that reads from his personal custom `"Settings.ini`" file.   Please go to the code and remove this portion, near the top.  (Hint: Probably lines of code " A_LineNumber-10 " through " A_LineNumber+2 ".)  Also be sure to `"uncomment-out`" the three color assignments in the USER OPTIONS.  Now exiting."
-    ExitApp
-}
-
 ; ======= USER OPTIONS =========================================================
-; --- Below 3 color assignments should only be commented out for Steve.
-; formColor := "00233A" ; Use hex code if desired. Use "Default" for default.
-; listColor := "003E67"
-; fontColor := "31FFE7"
+formColor := "00233A" ; Use hex code if desired. Use "Default" for default.
+listColor := "003E67"
+fontColor := "31FFE7"
 mainHotkey := "!+q" ; main hotkey to show gui -- Alt+Shift+Q
 StickyFilter := 0 ; 0 = Clear the filter box each time the gui is reshown.
 guiWidth := 600 ; Width of form. (At least 600 recommended, depending on font size.)
