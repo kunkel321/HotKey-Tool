@@ -27,10 +27,11 @@ FROM CODE COMMENTS
 * - have single or double quotes.
 * - don't contain "::".
 * - do contain more than two colons.
+* Added later: Specify a folder which contain link (.lnk) files.  Those files will get added to the list of hotkeys.  This tool will either 'Run()' the file, or 'Send()' the hotkey. 
 * The Filter Box is a ComboBox and can have pre-defined hotkey search filters. 
 * - Names of scripts are added automatically, to filter by containing script file.
 * - Additional filters can be added to array in USER OPTIONS below.
 * There are a few other options below as well.  See also, copious in-line comments.
 * Tool will determine active window then wait for it before sending hotkey.
 * ===================================
-![Screenshot of Hotkey Tool main form](https://i.imgur.com/GgTuK1l.png)
+![Screenshot of Hotkey Tool main form](https://i.imgur.com/q4t2eOg.png)
