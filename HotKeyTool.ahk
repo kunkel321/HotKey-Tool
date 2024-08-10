@@ -4,7 +4,7 @@
 ; ==============================================================================
 ; Title:	    HotKey Lister, Filter'er, and Launcher.
 ; Author:	    Stephen Kunkel321, with help from Claude.ai
-; Version:	    8-9-2024
+; Version:	    8-10-2024
 ; GitHub:       https://github.com/kunkel321/HotKey-Tool
 ; AHK Forum:    https://www.autohotkey.com/boards/viewtopic.php?f=83&t=132224
 ; ========= INFORMATION ========================================================
@@ -38,22 +38,23 @@
 ; ==============================================================================
 
 ; ======= USER OPTIONS =========================================================
-formColor := "00233A" ; Use hex code if desired. Use "Default" for default.
-listColor := "003E67"
-fontColor := "31FFE7"
-mainHotkey := "!+q" ; main hotkey to show gui -- Alt+Shift+Q
-StickyFilter := 0 ; 0 = Clear the filter box each time the gui is reshown.
-guiWidth := 600 ; Width of form. (At least 600 recommended, depending on font size.)
-maxRows := 24 ; Scroll if more row than this in listview
-guiTitle := "Hotkey Tool (Alt+Shift+Q)" ; Change (here only) if desired. 
-fontSize := 12 ; Don't include the 's'.
-trans := 255 ; Set 0 (transparent) to 255 (opaque).
-appIcon := "shell32.dll,278" ; icon of blue 'info' circle. 
-ahkFolder := "D:\AutoHotkey" ; We'll find the active hotkeys in scripts running from here.
-lnkFolder := "D:\AutoHotkey\AHK FaveLinks" ; Each .lnk file in this folder is added to list.
-ignoreList := ["AHK-ToolKit", "HotstringLib", "QuickSwitch", "mwClipboard"] ; We'll skip these files... 
+formColor     := "00233A" ; Use hex code if desired. Use "Default" for default.
+listColor     := "003E67"
+fontColor     := "31FFE7"
+mainHotkey      := "!+q" ; main hotkey to show gui -- Alt+Shift+Q
+StickyFilter    := 0 ; 0 = Clear the filter box each time the gui is reshown.
+guiWidth        := 600 ; Width of form. (At least 600 recommended, depending on font size.)
+maxRows         := 24 ; Scroll if more row than this in listview
+guiTitle        := A_UserName "'s Hotkey Tool" ; Change (here only) if desired. 
+fontSize        := 12 ; Don't include the 's'.
+trans           := 255 ; Set 0 (transparent) to 255 (opaque).
+;appIcon        := "shell32.dll,278" ; icon of blue 'info' circle.
+appIcon         := "comctl32.dll,3" ; icon of 'info' word bubble. 
+ahkFolder       := "D:\AutoHotkey" ; We'll find the active hotkeys in scripts running from here.
+lnkFolder       := "D:\AutoHotkey\AHK FaveLinks" ; Each .lnk file in this folder is added to list.
+ignoreList      := ["AHK-ToolKit", "HotstringLib", "QuickSwitch", "mwClipboard"] ; We'll skip these files... 
 preDefinedFilters := ["#","!+","!^","Link"] ; Pre-defined filters for the combobox. Add more? 
-debugMode := 0 ; 1=On.  Shows processes to be scanned, and target window.
+debugMode       := 0 ; 1=On.  Shows processes to be scanned, and target window.
 ; ==============================================================================
 
 If !DirExist(ahkFolder) { ; Make sure folder is there.
@@ -91,6 +92,11 @@ GetScriptNames(ahkFolder, ignoreList) {
         }
     }
 
+    If debugMode = 1 {
+        for idx, itm1 in scriptNames ; <---------- Leave here for debugging.
+            list1 .= idx ") " itm1 "`n"
+        MsgBox "Processes found:`n`n" list1
+    }
     ; Do preliminary scan of the ahk files and check for '#Included' ahk files. 
     ; Add those to the array.
     for item in scriptNames {
@@ -185,6 +191,7 @@ hotkeys.Push(linkHotkeys*)
 ; Function to get combo box list
 GetComboBoxList(scriptNames, preDefinedFilters) {
     justNames := []
+    justNames.Push("") ; Add blank to top of list.
     for jname in scriptNames { 
         SplitPath(jname, &jname)
         justNames.Push(jname)
@@ -278,7 +285,7 @@ updateHkList(hkList, hotkeys, StatBar, ahkFolder, filter := "") {
     }
     if (count > 0)
         hkList.Modify(1, "Select Focus")  ; Pre-select the first item if the list is not empty
-    StatBar.SetText("Showing " count " of " hotkeys.Length " hotkeys from " ahkFolder "....") ; Update status bar
+    StatBar.SetText("Showing " count " of " hotkeys.Length " items.") ; Update status bar
 }
 
 ; This function gets called whenever the filter box is updated (from typing in it).
@@ -288,7 +295,7 @@ filterChange(hkFilter, hkList, hotkeys, StatBar, ahkFolder) {
 
 ; #HotIf WinActive(guiTitle) ; context-sensitive hotkeys
 #HotIf (myKeys.FocusedCtrl == myKeys.hkFilter) or (myKeys.FocusedCtrl == myKeys.hkList) ; context-sensitive hotkeys
-    Enter::pressedEnter()
+    Enter::pressedEnter() ; hide
 #HotIf
 
 pressedEnter(*) {
@@ -299,7 +306,6 @@ pressedEnter(*) {
 runTool(hkList, myKeys) {
     myKeys.Hide()
     If (ThisWinTitle = "") or (ThisWinTitle = "Program Manager") or WinWaitActive(ThisWinTitle,, 3) {
-		WinActivate ThisWinTitle
         selectedRow := hkList.GetNext(0, "F")  ; Get the index of the selected row
         if (selectedRow > 0) {
             thisKey := hkList.GetText(selectedRow, 1)  ; Get the text from the first column (Hotkey)
