@@ -2,9 +2,10 @@
 #Requires AutoHotkey v2.0
 
 ; ==============================================================================
-; Title:	    HotKey Lister, Filter'er, and Launcher.
-; Author:	    Stephen Kunkel321, with help from Claude.ai
-; Version:	    8-10-2024
+; Title:	    HotKey-Tool:  A Lister, Filter'er, and Launcher.
+; Author:	    Stephen Kunkel321
+; Tools:        Claude.ai was used extensively.  AI-generated code is indicated below. 
+; Version:	    8-14-2024
 ; GitHub:       https://github.com/kunkel321/HotKey-Tool
 ; AHK Forum:    https://www.autohotkey.com/boards/viewtopic.php?f=83&t=132224
 ; ========= INFORMATION ========================================================
@@ -82,6 +83,7 @@ if FileExist(A_Startup "\HotKeyTool.lnk")
 
 ; Function to get script names
 GetScriptNames(ahkFolder, ignoreList) {
+    ; Claude.ai worked out the ComObject, and how to filter for processes originating from a gived folder.
     processlist := ComObject("WbemScripting.SWbemLocator").ConnectServer().ExecQuery("Select Name, ExecutablePath from Win32_Process")
     
     scriptNames := []
@@ -102,6 +104,7 @@ GetScriptNames(ahkFolder, ignoreList) {
     for item in scriptNames {
         try loop read item { 
             if SubStr(A_LoopReadLine, 1, 9) = "#Include " {
+                ; Claude.ai wrote this regex.
                 if (RegExMatch(A_LoopReadLine, '#Include\s+"([^"]+\.ahk)"', &match)) {
                     SplitPath item,, &dir
                     scriptNames.Push(dir "\" match[1]) ; Put folder path onto #Included files.
@@ -153,8 +156,8 @@ GetHotkeys(scriptNames) {
                 colonCount := StrLen(A_LoopReadLine) - StrLen(StrReplace(A_LoopReadLine, ":"))
                 if (colonCount == 2 ; Ignore lines with more than 2 colons (I.e. hotstrings)
                 && !InStr(A_LoopReadLine, "hide") ; Ignore lines of code with "hide"
-                && !InStr(A_LoopReadLine, "'") 
-                && !InStr(A_LoopReadLine, '"')) {
+                && !InStr(A_LoopReadLine, "'")  ; Ignore lines of code with single-quotes
+                && !InStr(A_LoopReadLine, '"')) {  ; Ignore lines of code with double-quotes
                     scriptName := SplitPath(item, &name)
                     hotkeys.Push(Trim(A_LoopReadLine) " [" name "]") ; Add to hotkey array.
                 }
@@ -166,8 +169,9 @@ GetHotkeys(scriptNames) {
 
 hotkeys := GetHotkeys(scriptNames)
 
-;Function to get the target of a shortcut file and add the shortcut names to the
-; array of hotkeys so they show up in the list box. 
+; Function to get the target of a shortcut file and add the shortcut names to the
+; array of hotkeys so they show up in the list box. Claude.ai worked-out how to write
+; and use this ComObject to get the link targets. 
 GetLinks() {
     GetShortcutTarget(FilePath) {
         objShell := ComObject("WScript.Shell")
@@ -188,7 +192,7 @@ GetLinks() {
 linkHotkeys := GetLinks()
 hotkeys.Push(linkHotkeys*)
 
-; Function to get combo box list
+; Function to get combobox list
 GetComboBoxList(scriptNames, preDefinedFilters) {
     justNames := []
     justNames.Push("") ; Add blank to top of list.
@@ -207,15 +211,19 @@ justNames := GetComboBoxList(scriptNames, preDefinedFilters)
 ; Create the GUI
 myKeys := CreateGui(guiTitle, guiWidth, formColor, listColor, fontColor, fontSize, trans, maxRows, justNames, hotkeys, ahkFolder)
 
-; The main hotkey calls this function.  
+; The main hotkey calls this function.  It was Claude.ai that incorporated the "wrapper." 
+; this was done in response to an error I was getting.  (I don't remember the error.)
 Hotkey mainHotkey, ShowMyKeysWrapper
 
-ShowMyKeysWrapper(*)
-{
+ShowMyKeysWrapper(*) {
     showMyKeys(myKeys, guiTitle, guiWidth)
 }
 
-; Function to create GUI
+; Function to create GUI.  I (the human) had made a normal simple gui that had a ListBox
+; control for the list of hotkeys.  I asked Claude.ai to change the ListBox into a 
+; ListView.  I wrote a long narrative explaining what to make.  The AI created this function
+; with all the paramaters, and seems to have used "dot.notation" for creating the gui controls
+; which I found interesting. I tweaked parts, but mostly this function is "all Claude." 
 CreateGui(guiTitle, guiWidth, formColor, listColor, fontColor, fontSize, trans, maxRows, justNames, hotkeys, ahkFolder) {
     myKeys := Gui(, guiTitle)
     fontCol := fontColor=""? "" : "c" fontColor ; see if custom value for font color set.
@@ -252,7 +260,7 @@ showMyKeys(myKeys, guiTitle, guiWidth) {
     If debugMode = 1 {
         MsgBox "Target window: " ThisWinTitle
     }
-    If WinActive(guiTitle) { ; Causes fgui to hid, if already showing (I.e. toggle))
+    If WinActive(guiTitle) { ; Causes gui to hide, if already showing (I.e. toggle))
         myKeys.Hide()
         global targetWindow := ""
         Return
@@ -262,13 +270,16 @@ showMyKeys(myKeys, guiTitle, guiWidth) {
             myKeys.hkFilter.Text := ""
             filterChange(myKeys.hkFilter, myKeys.hkList, hotkeys, myKeys.StatBar, ahkFolder)
         }
-        myKeys.Show("w" guiWidth + 28)
+        myKeys.Show("w" guiWidth + 28) ; Increase by 28pix, so there's a margin around the controls.
         global targetWindow := ""
         myKeys.hkFilter.Focus() ; Focus filter box each time gui is shown. 
     }
 }
 
-; Combined function for populating and filtering the list
+; Combined function for populating and filtering the list.
+; I had written this function to push a single line of text onto the array, for use
+; in a ListBox.  When I prompted the AI to replace the ListBox with a ListView, it
+; also updated this function. 
 updateHkList(hkList, hotkeys, StatBar, ahkFolder, filter := "") {
     hkList.Delete()  ; Clear the list before populating
     count := 0
