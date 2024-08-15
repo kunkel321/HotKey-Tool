@@ -27,7 +27,7 @@ FROM CODE COMMENTS
 * - have single or double quotes.
 * - don't contain "::".
 * - do contain more than two colons.
-* Added later: Specify a folder which contain link (.lnk) files.  Those files will get added to the list of hotkeys.  This tool will either 'Run()' the file, or 'Send()' the hotkey. 
+* Added later: Specify an array of folders which contain link (.lnk) files.  The folders are optionally scanned recursively.  The files will get added to the list of hotkeys.  This tool will either 'Run()' the file, or 'Send()' the hotkey.  The "links" are not actually "Run..."  The target file/app is resolved, and the target is Run. Ranned?  Ran?
 * The Filter Box is a ComboBox and can have pre-defined hotkey search filters. 
 * - Names of scripts are added automatically, to filter by containing script file.
 * - Additional filters can be added to array in USER OPTIONS below.
