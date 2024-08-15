@@ -5,7 +5,7 @@
 ; Title:	    HotKey-Tool:  A Lister, Filter'er, and Launcher.
 ; Author:	    Stephen Kunkel321
 ; Tools:        Claude.ai was used extensively.  AI-generated code is indicated below. 
-; Version:	    8-14-2024
+; Version:	    8-15-2024
 ; GitHub:       https://github.com/kunkel321/HotKey-Tool
 ; AHK Forum:    https://www.autohotkey.com/boards/viewtopic.php?f=83&t=132224
 ; ========= INFORMATION ========================================================
@@ -42,30 +42,29 @@
 formColor     := "00233A" ; Use hex code if desired. Use "Default" for default.
 listColor     := "003E67"
 fontColor     := "31FFE7"
-mainHotkey      := "!+q" ; main hotkey to show gui -- Alt+Shift+Q
-StickyFilter    := 0 ; 0 = Clear the filter box each time the gui is reshown.
-guiWidth        := 600 ; Width of form. (At least 600 recommended, depending on font size.)
-maxRows         := 24 ; Scroll if more row than this in listview
+mainHotkey      := "!+q"    ; main hotkey to show gui -- Alt+Shift+Q
+StickyFilter    := 0        ; 0 = Clear the filter box each time the gui is reshown.
+guiWidth        := 600      ; Width of form. (At least 600 recommended, depending on font size.)
+maxRows         := 24       ; Scroll if more row than this in listview
 guiTitle        := A_UserName "'s Hotkey Tool" ; Change (here only) if desired. 
-fontSize        := 12 ; Don't include the 's'.
-trans           := 255 ; Set 0 (transparent) to 255 (opaque).
-;appIcon        := "shell32.dll,278" ; icon of blue 'info' circle.
+fontSize        := 12       ; Don't include the 's'.
+trans           := 255      ; Set 0 (transparent) to 255 (opaque).
 appIcon         := "comctl32.dll,3" ; icon of 'info' word bubble. 
-ahkFolder       := "D:\AutoHotkey" ; We'll find the active hotkeys in scripts running from here.
-lnkFolder       := "D:\AutoHotkey\AHK FaveLinks" ; Each .lnk file in this folder is added to list.
-ignoreList      := ["AHK-ToolKit", "HotstringLib", "QuickSwitch", "mwClipboard"] ; We'll skip these files... 
+ahkFolder       := "D:\AutoHotkey" ; We'll find (recursively) the active hotkeys in scripts running from here.
+lnkFolders      := [ ; Each .lnk file in this folder is added to list.
+                    "D:\AutoHotkey\AHK FaveLinks", ; <-------------------------- Specific to Steve's computer! 
+                    "C:\Users\" A_UserName "\AppData\Roaming\Microsoft\Windows\Start Menu\Programs",
+                    "C:\ProgramData\Microsoft\Windows\Start Menu\Programs"
+                ]
+lnkFoldersIsRecursive := 1  ; 1=Search the subfolders from lnkFolders too.
+ignoreList      := ["AHK-ToolKit", "HotstringLib", "QuickSwitch", "mwClipboard"] ; We'll skip these script files... 
 preDefinedFilters := ["#","!+","!^","Link"] ; Pre-defined filters for the combobox. Add more? 
-debugMode       := 0 ; 1=On.  Shows processes to be scanned, and target window.
+debugMode       := 0 ;       1=On.  Shows processes to be scanned, and target window.
 ; ==============================================================================
 
 If !DirExist(ahkFolder) { ; Make sure folder is there.
 	MsgBox "The folder `"" ahkFolder "`" doesn't seem to exist.  Please point the variable `"ahkFolder :=`" to the folder where your scripts are located. Now exiting"
 	ExitApp
-}
-
-if !DirExist(lnkFolder) { ; Make sure folder is there.
-    MsgBox "The folder `"" lnkFolder "`" doesn't exist. Please check the lnkFolder variable.  It should point to a folder full of .LNK files.  Those files should point to .EXE files. "
-    ExitApp
 }
 
 ; Determine if icon is .ico or library item, parse as needed.
@@ -155,9 +154,9 @@ GetHotkeys(scriptNames) {
             if (InStr(A_LoopReadLine, "::")) {
                 colonCount := StrLen(A_LoopReadLine) - StrLen(StrReplace(A_LoopReadLine, ":"))
                 if (colonCount == 2 ; Ignore lines with more than 2 colons (I.e. hotstrings)
-                && !InStr(A_LoopReadLine, "hide") ; Ignore lines of code with "hide"
-                && !InStr(A_LoopReadLine, "'")  ; Ignore lines of code with single-quotes
-                && !InStr(A_LoopReadLine, '"')) {  ; Ignore lines of code with double-quotes
+                && !InStr(A_LoopReadLine, "hide")   ; Ignore lines of code with "hide"
+                && !InStr(A_LoopReadLine, "'")      ; Ignore lines of code with single-quotes
+                && !InStr(A_LoopReadLine, '"')) {   ; Ignore lines of code with double-quotes
                     scriptName := SplitPath(item, &name)
                     hotkeys.Push(Trim(A_LoopReadLine) " [" name "]") ; Add to hotkey array.
                 }
@@ -180,12 +179,31 @@ GetLinks() {
     }
 
     linkHotkeys := []
-    Loop Files, lnkFolder "\*.lnk"
-    {
-        target := GetShortcutTarget(A_LoopFilePath)
-        linkHotkeys.Push("Link::" A_LoopFileName " [" target "]")
+    recurse := (lnkFoldersIsRecursive=1)? "R": "" ; Search in subfolders too?
+    for folder in lnkFolders {
+        if !DirExist(folder) { ; Make sure folder is there.
+            MsgBox "The folder `"" folder "`" doesn't exist. Please check the lnkFolders array elements.  It should point to folders with .LNK files.`n`n`nNow exiting."
+            ExitApp
+        }
+        Loop Files, folder "\*.lnk", recurse {
+            target := GetShortcutTarget(A_LoopFilePath)
+            linkHotkeys.Push("Link::" A_LoopFileName " [" target "]")
+        }
     }
-
+    ;Dedupe links.
+    uniqueArr := []
+    for item in linkHotkeys {
+            isDuplicate := false
+            for uniqueItem in uniqueArr {
+                if (item = uniqueItem) {
+                    isDuplicate := true
+                    break
+                }
+            }
+            if (!isDuplicate)
+                uniqueArr.Push(item)
+        }
+    linkHotkeys := uniqueArr
     return linkHotkeys
 }
 
@@ -231,7 +249,7 @@ CreateGui(guiTitle, guiWidth, formColor, listColor, fontColor, fontSize, trans, 
     myKeys.BackColor := formColor 
     WinSetTransparent(trans, myKeys) 
     ; Text label at top of form. Change as desired.
-    myKeys.Add("Text", "+wrap w" guiWidth, "Filter then Enter, or Double-Click item.") ; Change label if desired.
+    global txtLbl := myKeys.Add("Text", "+wrap w" guiWidth, "Filter then Enter, or Double-Click item.  Target: ") ; Change label if desired.
     rows := (hotkeys.Length <= (maxRows))? hotkeys.Length : maxRows 
     ; The below combobox will serve as a filter box with some pre-defined filters. 
     myKeys.hkFilter := myKeys.Add("ComboBox", "w" guiWidth " Background" listColor, justNames) 
@@ -255,12 +273,13 @@ CreateGui(guiTitle, guiWidth, formColor, listColor, fontColor, fontSize, trans, 
 ; The hotkeys and link files get added to the array when the script starts, but this
 ; function is each time the gui is re-shown.  
 showMyKeys(myKeys, guiTitle, guiWidth) {
-    global targetWindow := WinActive("A") ; Get the handle of the currently active window
-    global ThisWinTitle := WinGetTitle("ahk_id " targetWindow) ; remember win title so we can wait for it later...
+    global targetWindow := WinActive("A")   ; Get the handle of the currently active window
+    global ThisWinTitle := ""
+    try ThisWinTitle := WinGetTitle("ahk_id " targetWindow) ; remember win title so we can wait for it later...
     If debugMode = 1 {
         MsgBox "Target window: " ThisWinTitle
     }
-    If WinActive(guiTitle) { ; Causes gui to hide, if already showing (I.e. toggle))
+    If WinActive(guiTitle) {                ; Causes gui to hide, if already showing (I.e. toggle))
         myKeys.Hide()
         global targetWindow := ""
         Return
@@ -270,9 +289,10 @@ showMyKeys(myKeys, guiTitle, guiWidth) {
             myKeys.hkFilter.Text := ""
             filterChange(myKeys.hkFilter, myKeys.hkList, hotkeys, myKeys.StatBar, ahkFolder)
         }
-        myKeys.Show("w" guiWidth + 28) ; Increase by 28pix, so there's a margin around the controls.
+        txtLbl.Text := "Filter then Enter, or Double-Click item.  Target: " ThisWinTitle
+        myKeys.Show("w" guiWidth + 28)      ; Increase by 28pix, so there's a margin around the controls.
         global targetWindow := ""
-        myKeys.hkFilter.Focus() ; Focus filter box each time gui is shown. 
+        myKeys.hkFilter.Focus()             ; Focus filter box each time gui is shown. 
     }
 }
 
@@ -317,11 +337,11 @@ pressedEnter(*) {
 runTool(hkList, myKeys) {
     myKeys.Hide()
     If (ThisWinTitle = "") or (ThisWinTitle = "Program Manager") or WinWaitActive(ThisWinTitle,, 3) {
-        selectedRow := hkList.GetNext(0, "F")  ; Get the index of the selected row
+        selectedRow := hkList.GetNext(0, "F")               ; Get the index of the selected row
         if (selectedRow > 0) {
-            thisKey := hkList.GetText(selectedRow, 1)  ; Get the text from the first column (Hotkey)
+            thisKey := hkList.GetText(selectedRow, 1)       ; Get the text from the first column (Hotkey)
             If SubStr(thisKey, 1, 4) = "Link"{
-                thisLink := hkList.GetText(selectedRow, 3) ; get third column, which is the taget path
+                thisLink := hkList.GetText(selectedRow, 3)  ; get third column, which is the taget path
                 Run(thisLink)
             }
             Else 
