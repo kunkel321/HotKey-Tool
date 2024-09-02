@@ -5,7 +5,7 @@
 ; Title:	    HotKey-Tool:  A Lister, Filter'er, and Launcher.
 ; Author:	    Stephen Kunkel321
 ; Tools:        Claude.ai was used extensively.  AI-generated code is indicated below. 
-; Version:	    8-15-2024
+; Version:	    9-2-2024
 ; GitHub:       https://github.com/kunkel321/HotKey-Tool
 ; AHK Forum:    https://www.autohotkey.com/boards/viewtopic.php?f=83&t=132224
 ; ========= INFORMATION ========================================================
@@ -39,6 +39,7 @@
 ; ==============================================================================
 
 ; ======= USER OPTIONS =========================================================
+; --- Below 3 color assignments should only be commented out for Steve.
 formColor     := "00233A" ; Use hex code if desired. Use "Default" for default.
 listColor     := "003E67"
 fontColor     := "31FFE7"
@@ -84,6 +85,7 @@ if FileExist(A_Startup "\HotKeyTool.lnk")
 GetScriptNames(ahkFolder, ignoreList) {
     ; Claude.ai worked out the ComObject, and how to filter for processes originating from a gived folder.
     processlist := ComObject("WbemScripting.SWbemLocator").ConnectServer().ExecQuery("Select Name, ExecutablePath from Win32_Process")
+    
     
     scriptNames := []
     for process in processlist {
@@ -137,7 +139,6 @@ GetScriptNames(ahkFolder, ignoreList) {
 
     return finalScriptNames
 }
-
 scriptNames := GetScriptNames(ahkFolder, ignoreList)
 
 If debugMode = 1 {
@@ -259,7 +260,8 @@ CreateGui(guiTitle, guiWidth, formColor, listColor, fontColor, fontSize, trans, 
     myKeys.hkList := myKeys.Add("ListView", "w" guiWidth " h" rows*20 " Background" listColor, ["Hotkey", "Action", "Script"])
     myKeys.hkList.ModifyCol(1, (guiWidth // 4)-50)      ; First column width: 1/4 of guiWidth
     myKeys.hkList.ModifyCol(2, (guiWidth // 2)+50)      ; Second column width: 1/2 of guiWidth
-    myKeys.hkList.ModifyCol(3, guiWidth // 4)           ; Third column width: 1/4 of guiWidth
+    myKeys.hkList.ModifyCol(3, guiWidth)           ; Third column width: 1/4 of guiWidth
+    ;myKeys.hkList.ModifyCol(3, guiWidth // 4)           ; Third column width: 1/4 of guiWidth
 
     updateHkList(myKeys.hkList, hotkeys, myKeys.StatBar, ahkFolder, "") ; Call function that adds rows to list.
     myKeys.hkFilter.OnEvent("Change", (*) => filterChange(myKeys.hkFilter, myKeys.hkList, hotkeys, myKeys.StatBar, ahkFolder)) ; if the edit box is changed.
@@ -301,6 +303,16 @@ showMyKeys(myKeys, guiTitle, guiWidth) {
 ; in a ListBox.  When I prompted the AI to replace the ListBox with a ListView, it
 ; also updated this function. 
 updateHkList(hkList, hotkeys, StatBar, ahkFolder, filter := "") {
+
+    static il := IL_Create()
+
+    static Icons := Map(
+        '.ahk', IL_Add(il,"C:\Program Files\Autohotkey\v2\Autohotkey64.exe")
+    )
+
+    if Icons.Count = 1
+        hkList.SetImageList(il)
+    
     hkList.Delete()  ; Clear the list before populating
     count := 0
     for item in hotkeys {
@@ -310,7 +322,18 @@ updateHkList(hkList, hotkeys, StatBar, ahkFolder, filter := "") {
             action := parts[2]
             script := RegExReplace(action, ".*\[(.*)\]$", "$1")
             action := Trim(RegExReplace(action, "\s*\[.*\]$", ""), " `t;")
-            hkList.Add(, hotkey, action, script)
+
+            ; RaptorX (a human), with The Automator group added this icon part during an AHK Hero zoom call. 
+            SplitPath script,,,&Ext
+
+            if Ext = 'ahk'
+                i_indx := Icons['.ahk']
+            else if !Icons.Has(script)
+                i_indx := Icons[script] := IL_Add(il, script)
+            else
+                i_indx := Icons[script]
+
+            hkList.Add('Icon' i_indx, hotkey, action, script)
             count++
         }
     }
@@ -342,10 +365,16 @@ runTool(hkList, myKeys) {
             thisKey := hkList.GetText(selectedRow, 1)       ; Get the text from the first column (Hotkey)
             If SubStr(thisKey, 1, 4) = "Link"{
                 thisLink := hkList.GetText(selectedRow, 3)  ; get third column, which is the taget path
-                Run(thisLink)
+                If FileExist(thisLink)
+                    Run(thisLink)
+                else
+                    MsgBox "The file `"" thisLink "`" doesn't appear to exist."
             }
-            Else 
+            Else {
+                If RegExMatch(thisKey, "i).*?[a-z]{2,}") ; If hotkey has word like "space" then wrap it in braces like {space}
+                    thisKey := RegExReplace(thisKey, "i)(.*?)([a-z]{2,})", "$1{$2}")
                 SendInput thisKey
+            }
         }
     }
     else
