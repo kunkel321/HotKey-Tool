@@ -5,7 +5,7 @@
 ; Title:	    HotKey-Tool:  A Lister, Filter'er, and Launcher.
 ; Author:	    Stephen Kunkel321
 ; Tools:        Claude.ai was used extensively.  AI-generated code is indicated below. 
-; Version:	    9-2-2024
+; Version:	    11-3-2024
 ; GitHub:       https://github.com/kunkel321/HotKey-Tool
 ; AHK Forum:    https://www.autohotkey.com/boards/viewtopic.php?f=83&t=132224
 ; ========= INFORMATION ========================================================
@@ -38,11 +38,20 @@
 ; Tool will determine active window then wait for it before sending hotkey.
 ; ==============================================================================
 
+settingsFile := "colorThemeSettings.ini" ; Assumes that file is in same location as this script.
+If FileExist(SettingsFile) {  ; Get colors from ini file. 
+    fontColor := IniRead(settingsFile, "ColorSettings", "fontColor")
+    listColor := IniRead(settingsFile, "ColorSettings", "listColor")
+    formColor := IniRead(settingsFile, "ColorSettings", "formColor")
+}
+Else {
+    formColor     := "00233A" ; Use hex code.
+    listColor     := "003E67"
+    fontColor     := "31FFE7"
+}
+fontColor := "c" SubStr(fontColor, -6) ; Ensure exactly one 'c' on the left. 
+
 ; ======= USER OPTIONS =========================================================
-; --- Below 3 color assignments should only be commented out for Steve.
-formColor     := "00233A" ; Use hex code if desired. Use "Default" for default.
-listColor     := "003E67"
-fontColor     := "31FFE7"
 mainHotkey      := "!+q"    ; main hotkey to show gui -- Alt+Shift+Q
 StickyFilter    := 0        ; 0 = Clear the filter box each time the gui is reshown.
 guiWidth        := 600      ; Width of form. (At least 600 recommended, depending on font size.)
@@ -51,16 +60,20 @@ guiTitle        := A_UserName "'s Hotkey Tool" ; Change (here only) if desired.
 fontSize        := 12       ; Don't include the 's'.
 trans           := 255      ; Set 0 (transparent) to 255 (opaque).
 appIcon         := "comctl32.dll,3" ; icon of 'info' word bubble. 
+preDefinedFilters := ["NirSoft","SysInternals","Portables","#","!+","!^","Link"] ; Pre-defined filters for the combobox. Add more? 
+debugMode       := 0        ; 1=On.  Shows processes to be scanned, and target window.
+
 ahkFolder       := "D:\AutoHotkey" ; We'll find (recursively) the active hotkeys in scripts running from here.
-lnkFolders      := [ ; Each .lnk file in this folder is added to list.
-                    "D:\AutoHotkey\AHK FaveLinks", ; <-------------------------- Specific to Steve's computer! 
+ignoreList      :=  ["AHK-ToolKit", "HotstringLib", "QuickSwitch", "mwClipboard", "_jxon.ahk"] ; We'll skip scanning these script files for hotkeys...
+
+lnkFolders      :=  [       ; Each .lnk file in this folder(s) is added to list.
+                    "D:\PortableApps\FavePortableLinks",    ; <-------------------------- Specific to Steve's computer! 
+                    "D:\AutoHotkey\AHK FaveLinks",          ; <-------------------------- Specific to Steve's computer! 
                     "C:\Users\" A_UserName "\AppData\Roaming\Microsoft\Windows\Start Menu\Programs",
                     "C:\ProgramData\Microsoft\Windows\Start Menu\Programs"
-                ]
+                    ]
 lnkFoldersIsRecursive := 1  ; 1=Search the subfolders from lnkFolders too.
-ignoreList      := ["AHK-ToolKit", "HotstringLib", "QuickSwitch", "mwClipboard"] ; We'll skip these script files... 
-preDefinedFilters := ["#","!+","!^","Link"] ; Pre-defined filters for the combobox. Add more? 
-debugMode       := 0 ;       1=On.  Shows processes to be scanned, and target window.
+hideUninstallers := 1       ; Try to hide uninstaller apps.  (Revo Uninstaller not hidden.)
 ; ==============================================================================
 
 If !DirExist(ahkFolder) { ; Make sure folder is there.
@@ -188,7 +201,12 @@ GetLinks() {
         }
         Loop Files, folder "\*.lnk", recurse {
             target := GetShortcutTarget(A_LoopFilePath)
-            linkHotkeys.Push("Link::" A_LoopFileName " [" target "]")
+            if hideUninstallers = 1 && (InStr(A_LoopFileName, "Uninstall ") 
+            || InStr(A_LoopFileName, "Uninstall.") 
+            || InStr(A_LoopFileName, "Uninstall)")) ; Un-include uninstallers?
+                Continue
+            Else 
+                linkHotkeys.Push("Link::" A_LoopFileName " [" target "]")
         }
     }
     ;Dedupe links.
@@ -227,8 +245,16 @@ GetComboBoxList(scriptNames, preDefinedFilters) {
 
 justNames := GetComboBoxList(scriptNames, preDefinedFilters)
 
+
 ; Create the GUI
+GuiReady := 0
 myKeys := CreateGui(guiTitle, guiWidth, formColor, listColor, fontColor, fontSize, trans, maxRows, justNames, hotkeys, ahkFolder)
+
+; ShowMyKeysWrapper() ; build gui then hide, to force icons.
+; myKeys.Hide()
+
+SoundBeep 800, 300 ; Startup announcement.
+SoundBeep 1000, 300
 
 ; The main hotkey calls this function.  It was Claude.ai that incorporated the "wrapper." 
 ; this was done in response to an error I was getting.  (I don't remember the error.)
@@ -263,17 +289,23 @@ CreateGui(guiTitle, guiWidth, formColor, listColor, fontColor, fontSize, trans, 
     myKeys.hkList.ModifyCol(3, guiWidth)           ; Third column width: 1/4 of guiWidth
     ;myKeys.hkList.ModifyCol(3, guiWidth // 4)           ; Third column width: 1/4 of guiWidth
 
+ ; Add context menu
+    contextMenu := Menu()
+    contextMenu.Add("Go to file location", (*) => GoToFileLocation(myKeys.hkList))
+    myKeys.hkList.OnEvent("ContextMenu", (*) => contextMenu.Show())
+
     updateHkList(myKeys.hkList, hotkeys, myKeys.StatBar, ahkFolder, "") ; Call function that adds rows to list.
     myKeys.hkFilter.OnEvent("Change", (*) => filterChange(myKeys.hkFilter, myKeys.hkList, hotkeys, myKeys.StatBar, ahkFolder)) ; if the edit box is changed.
     myKeys.hkList.OnEvent("DoubleClick", (*) => runTool(myKeys.hkList, myKeys)) ; if the list item is d-clicked.
 
     myKeys.OnEvent("Escape", (*) => myKeys.Hide()) ; Pressing Esc hides form. 
-
+    
+    global GuiReady := 1
     return myKeys
 }
 
 ; The hotkeys and link files get added to the array when the script starts, but this
-; function is each time the gui is re-shown.  
+; function is re-ran each time the gui is re-shown.  
 showMyKeys(myKeys, guiTitle, guiWidth) {
     global targetWindow := WinActive("A")   ; Get the handle of the currently active window
     global ThisWinTitle := ""
@@ -301,7 +333,8 @@ showMyKeys(myKeys, guiTitle, guiWidth) {
 ; Combined function for populating and filtering the list.
 ; I had written this function to push a single line of text onto the array, for use
 ; in a ListBox.  When I prompted the AI to replace the ListBox with a ListView, it
-; also updated this function. 
+; also updated this function.  This function is really slow because of adding 
+; all if the app icons.
 updateHkList(hkList, hotkeys, StatBar, ahkFolder, filter := "") {
 
     static il := IL_Create()
@@ -347,38 +380,52 @@ filterChange(hkFilter, hkList, hotkeys, StatBar, ahkFolder) {
     updateHkList(hkList, hotkeys, StatBar, ahkFolder, hkFilter.Text)
 }
 
-; #HotIf WinActive(guiTitle) ; context-sensitive hotkeys
-#HotIf (myKeys.FocusedCtrl == myKeys.hkFilter) or (myKeys.FocusedCtrl == myKeys.hkList) ; context-sensitive hotkeys
-    Enter::pressedEnter() ; hide
-#HotIf
+; If script is still in the process of starting, 'mykeys' and 'GuiReady' won't have values
+; and that will cause an error.  "Fixed" it by having 'try' before first If.
+~Enter:: {  ; hide
+    global GuiReady
+    try If GuiReady = 1 
+        if(myKeys.FocusedCtrl == myKeys.hkFilter) or (myKeys.FocusedCtrl == myKeys.hkList)
+            runTool(myKeys.hkList, myKeys)
+}
 
-pressedEnter(*) {
-    runTool(myKeys.hkList, myKeys)
+; New function to handle "Go to file location."  Only works if full path is in col 3.
+GoToFileLocation(hkList) {
+    selectedRow := hkList.GetNext(0, "F")
+    if (selectedRow > 0) {
+        filePath := hkList.GetText(selectedRow, 3)
+        SplitPath(filePath, , &dir)
+        if (DirExist(dir)) {
+            Run("explorer.exe " dir)
+        } else {
+            MsgBox("The directory does not exist: " dir)
+        }
+    }
 }
 
 ; This gets called via dbl-clicking list item, or pressing Enter. 
 runTool(hkList, myKeys) {
     myKeys.Hide()
-    If (ThisWinTitle = "") or (ThisWinTitle = "Program Manager") or WinWaitActive(ThisWinTitle,, 3) {
-        selectedRow := hkList.GetNext(0, "F")               ; Get the index of the selected row
-        if (selectedRow > 0) {
-            thisKey := hkList.GetText(selectedRow, 1)       ; Get the text from the first column (Hotkey)
-            If SubStr(thisKey, 1, 4) = "Link"{
-                thisLink := hkList.GetText(selectedRow, 3)  ; get third column, which is the taget path
-                If FileExist(thisLink)
-                    Run(thisLink)
-                else
-                    MsgBox "The file `"" thisLink "`" doesn't appear to exist."
-            }
-            Else {
+        selectedRow := hkList.GetNext(0, "F")           ; Get the index of the selected row.
+    if (selectedRow > 0) {                              ; Ensure that a list item is selected.
+        thisKey := hkList.GetText(selectedRow, 1)       ; Get the text from the first column (Hotkey).
+        If SubStr(thisKey, 1, 4) = "Link" {             ; If it's a link...
+            thisLink := hkList.GetText(selectedRow, 3)  ; get third column, which is the taget path.
+            If FileExist(thisLink)                      ; Make sure exe file is still there.
+                Run(thisLink)                           ; Launch the exe file.
+            else
+                MsgBox "The file `"" thisLink "`" doesn't appear to exist."
+        }
+        else {                                          ; Not a link, so it's a hotkey.
+            If (ThisWinTitle = "") or (ThisWinTitle = "Program Manager") or WinWaitActive(ThisWinTitle,, 3) {
                 If RegExMatch(thisKey, "i).*?[a-z]{2,}") ; If hotkey has word like "space" then wrap it in braces like {space}
                     thisKey := RegExReplace(thisKey, "i)(.*?)([a-z]{2,})", "$1{$2}")
-                SendInput thisKey
-            }
+                SendInput thisKey                       ; Simulate pressing hotkey.
+                }
+            else
+                MsgBox "Target window (" ThisWinTitle ") never refocused."
         }
     }
-    else
-        MsgBox "Target window (" ThisWinTitle ") never refocused."
 }
 
 ; This function is only accessed via the systray menu item.  It toggles adding/removing
