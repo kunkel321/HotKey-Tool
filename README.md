@@ -1,6 +1,6 @@
 # HotKey Tool
  A tool to list, filter, and launch hotkeys from running scripts. 
- This tool assumes that the associated (same-named) ahk file is in the same folder as the exe file that is currently running. It won't work if you are running compiled scripts without the corresponding .ahk file. It is the ahk files that actually get scaned.
+ This tool assumes that the associated (same-named) ahk file is in the same folder as the exe file that is currently running. It won't work if you are running compiled scripts without the corresponding .ahk file. It is the ahk files that actually get scanned.
 
 The tool will look running processes from the folder you specify (and subfolders thereof) and scan the same-named .ahk files. It will do a preliminary scan for #Included .ahk files, then scan all of those for hotkeys. See code for additional comments and user options.
 
