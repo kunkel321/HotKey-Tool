@@ -2,6 +2,7 @@
 ; Saves them in folder "iconCache" which is read by HotkeyTool app.  
 ; HotkeyTool must be in same folder as this file (and the iconCache folder).
 ; Made by kunkel321 using ClaudeAI.  Version:  12-23-2024
+; This tool uses portions of the Gpid_All.ahk library, which are pasted below.
 
 #SingleInstance
 #Requires AutoHotkey v2.0
