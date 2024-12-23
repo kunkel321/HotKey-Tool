@@ -5,7 +5,8 @@
 
 The tool will look running processes from the folder you specify (and subfolders thereof) and scan the same-named .ahk files. It will do a preliminary scan for #Included .ahk files, then scan all of those for hotkeys. See code for additional comments and user options.
 
-Added 12-23-2024 is the HotKeyToolCacheMaker, which "pre-extracts" the icons from apps in the lnkFolders array.  The lnkFolders is in the USER OPTIONS of both scripts.  Make sure that the Tool and the CacheMaker both point to the same folder-fulls of LINK files.  Note that the above exe files are not compiled versions of the ahk files.  They are just copies of AutoHotkey64.exe that have been renamed.  
+Added 12-23-2024 is the HotKeyToolCacheMaker[1], which "pre-extracts" the icons from apps in the lnkFolders array.  The lnkFolders is in the USER OPTIONS of both scripts.  Make sure that the Tool and the CacheMaker both point to the same folder-fulls of LINK files.  Note that the above exe files are not compiled versions of the ahk files.  They are just copies of AutoHotkey64.exe that have been renamed.  
+[1]This tool uses portions of the Gpid_All.ahk library, which are embedded into the code.
 
 # IMPORTANT: Run the HotKeyToolCacheMaker before running the HotKeyTool.  
 
