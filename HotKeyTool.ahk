@@ -5,51 +5,49 @@
 ; Title:	    HotKey-Tool:  A Lister, Filter'er, and Launcher.
 ; Author:	    Stephen Kunkel321
 ; Tools:        Claude.ai was used extensively.  AI-generated code is indicated below. 
-; Version:	    11-3-2024
+; Version:	    12-23-2024
 ; GitHub:       https://github.com/kunkel321/HotKey-Tool
 ; AHK Forum:    https://www.autohotkey.com/boards/viewtopic.php?f=83&t=132224
 ; ========= INFORMATION ========================================================
-; Mostly it's just a "Cheatsheet" list of the hotkeys in your running scripts. 
-; Also can be used to launch them though.  Launches via "Sending" the hotkey.
-; Double-click an item to launch it.  Enter key launches selected item too.
-; Made for "portably-running" scripts.  Those are scripts where a copy
-; of AutoHotkey.exe has been put in the same folder as the .ahk file and renamed  
-; to match it. For example myScript.ahk and myScript.exe are both in the same folder. 
-; If the exe is a compiled version of the ahk, then that should work too. 
-; It is actually the ahk file that gets searched for hotkeys.
-; Also the folder has to be a subfolder of the one specified via ahkFolder variable.
-; Esc only hides form.  Must restart script to rescan hotkeys.
-; There's no point scanning files with no hotkeys, so add those to ignore list array.
-; Set your scripts up such that there is an in-line comment on each line of code
-; that has a hotkey.  Use descriptive "search terms" in the comment.
-; To hide individual hotkeys from scan, include the word "hide" (without quotes)
-; in the comment.  Lines of code are ignored if they...
+; Mostly it's just a "Cheatsheet" list of the hotkeys in your running scripts. Also can be used to launch them though.  Launches via "Sending" the hotkey.  Double-click an item to launch it.  Enter key launches selected item too.  Made for "portably-running" scripts.  Those are scripts where a copy of AutoHotkey.exe has been put in the same folder as the .ahk file and renamed to match it. For example myScript.ahk and myScript.exe are both in the same folder. If the exe is a compiled version of the ahk, then that should work too.  It is actually the ahk file that gets searched for hotkeys.  Also the folder has to be a subfolder of the one specified via ahkFolder variable.  Esc only hides form.  Must restart script to rescan hotkeys.  There's no point scanning files with no hotkeys, so add those to ignore list array.  Set your scripts up such that there is an in-line comment on each line of code that has a hotkey.  Use descriptive "search terms" in the comment.  To hide individual hotkeys from scan, include the word "hide" (without quotes) in the comment.  Lines of code are ignored if they...
 ; - have the word 'hide'.
 ; - have single or double quotes.
 ; - don't contain "::".
 ; - do contain more than two colons.
-; Added later: Specify a folder which contain link (.lnk) files.  Those files will
-; get added to the list of hotkeys.  This tool will either 'Run()' the file, or
-; 'Send()' the hotkey. 
-; The Filter Box is a ComboBox and can have pre-defined hotkey search filters. 
+; Added later: Specify a folder which contain link (.lnk) files.  Those files will get added to the list of hotkeys.  This tool will either 'Run()' the file, or
+; 'Send()' the hotkey.  The Filter Box is a ComboBox and can have pre-defined hotkey search filters. 
 ; - Names of scripts are added automatically, to filter by containing script file.
 ; - Additional filters can be added to array in USER OPTIONS below.
-; There are a few other options below as well.  See also, copious in-line comments.
-; Tool will determine active window then wait for it before sending hotkey.
+; There are a few other options below as well.  See also, copious in-line comments.  Tool will determine active window then wait for it before sending hotkey.
+; Added Dec 2024: A separate tool is used to build an iconCache of app icons. Then, this tool reads the cache (rather than extracting app icons at startup).
+; Known issue:  A generic AHK v2 icon is applied to apps that don't have icons. 
 ; ==============================================================================
 
-settingsFile := "colorThemeSettings.ini" ; Assumes that file is in same location as this script.
+; Assumes that file is in grandparent folder of this file.
+settingsFile := A_ScriptDir "\..\colorThemeSettings.ini" 
 If FileExist(SettingsFile) {  ; Get colors from ini file. 
     fontColor := IniRead(settingsFile, "ColorSettings", "fontColor")
     listColor := IniRead(settingsFile, "ColorSettings", "listColor")
     formColor := IniRead(settingsFile, "ColorSettings", "formColor")
 }
-Else {
-    formColor     := "00233A" ; Use hex code.
-    listColor     := "003E67"
-    fontColor     := "31FFE7"
+Else { ; Use hex codes.
+    formColor := "00233A", listColor := "003E67", fontColor := "31FFE7" 
 }
 fontColor := "c" SubStr(fontColor, -6) ; Ensure exactly one 'c' on the left. 
+
+iconCachePath := A_ScriptDir "\IconCache" ; Folder for cached PNG icons
+ahkIconPath := iconCachePath "\AutoHotkeyV2.png" ; Path for the AHK icon
+; Make sure icon cache folder exists
+if !DirExist(iconCachePath)
+    DirCreate(iconCachePath)
+
+; Extract AHK icon if it doesn't exist
+if !FileExist(ahkIconPath) {
+    if FileExist("C:\Program Files\AutoHotkey\v2\AutoHotkey64.exe") {
+        ; This assumes you've run the icon extractor utility first
+        FileMove iconCachePath "\Program Files-AutoHotkey-v2-AutoHotkey64.png", ahkIconPath
+    }
+}
 
 ; ======= USER OPTIONS =========================================================
 mainHotkey      := "!+q"    ; main hotkey to show gui -- Alt+Shift+Q
@@ -64,7 +62,7 @@ preDefinedFilters := ["NirSoft","SysInternals","Portables","#","!+","!^","Link"]
 debugMode       := 0        ; 1=On.  Shows processes to be scanned, and target window.
 
 ahkFolder       := "D:\AutoHotkey" ; We'll find (recursively) the active hotkeys in scripts running from here.
-ignoreList      :=  ["AHK-ToolKit", "HotstringLib", "QuickSwitch", "mwClipboard", "_jxon.ahk"] ; We'll skip scanning these script files for hotkeys...
+ignoreList      :=  ["AHK-ToolKit", "HotstringLib", "QuickPath", "mwClipboard", "ColorThemeInt.ahk", "HotKeyTool.ahk", "_jxon.ahk"] ; We'll skip scanning these script files for hotkeys...
 
 lnkFolders      :=  [       ; Each .lnk file in this folder(s) is added to list.
                     "D:\PortableApps\FavePortableLinks",    ; <-------------------------- Specific to Steve's computer! 
@@ -89,16 +87,32 @@ Else
 
 ; Assign custom image to SysTrayIcon and add entry to menu.
 TraySetIcon(appIconA, appIconB)
-htMenu := A_TrayMenu
+appName := StrReplace(A_ScriptName, ".ahk") ; Assign the name of this file as "appName".
+htMenu := A_TrayMenu ; Tray Menu.
+htMenu.Delete ; Remove standard, so that app name will be at the top. 
+htMenu.Add(appName, (*) => False) ; Shows name of app at top of menu.
+htMenu.Add() ; Separator.
+htMenu.AddStandard  ; Put the standard menu items back. 
+htMenu.Add() ; Separator.
 htMenu.Add("Start with Windows", (*) => StartUpHkTool(A_WorkingDir, appIconA, appIconB))
 if FileExist(A_Startup "\HotKeyTool.lnk")
     htMenu.Check("Start with Windows")
+htMenu.Default := appName
+
+; Replace the existing ExePathToIconPath function with this updated version
+ExePathToIconPath(exePath) {
+    iconName := SubStr(exePath, 3)  ; Remove drive letter
+    iconName := StrReplace(iconName, "\", "-")  ; Replace backslashes with hyphens
+    iconName := RegExReplace(iconName, "\.exe$|\.EXE$", "")  ; Remove .exe or .EXE extension
+    iconName := RegExReplace(iconName, "^-+", "") ; Remove leading hyphens
+    iconName := iconName ".png" ; Add .png extension
+    return iconCachePath "\" iconName
+}
 
 ; Function to get script names
-GetScriptNames(ahkFolder, ignoreList) {
+GetScriptNames(ahkFolder, ignoreList) { 
     ; Claude.ai worked out the ComObject, and how to filter for processes originating from a gived folder.
     processlist := ComObject("WbemScripting.SWbemLocator").ConnectServer().ExecQuery("Select Name, ExecutablePath from Win32_Process")
-    
     
     scriptNames := []
     for process in processlist {
@@ -114,8 +128,7 @@ GetScriptNames(ahkFolder, ignoreList) {
         MsgBox "Processes found:`n`n" list1
     }
     ; Do preliminary scan of the ahk files and check for '#Included' ahk files. 
-    ; Add those to the array.
-    for item in scriptNames {
+    for item in scriptNames { ; Add those to the array.
         try loop read item { 
             if SubStr(A_LoopReadLine, 1, 9) = "#Include " {
                 ; Claude.ai wrote this regex.
@@ -127,8 +140,7 @@ GetScriptNames(ahkFolder, ignoreList) {
         }
     }
 
-    ; Remove "ignore list" items from array. 
-    filteredScriptNames := []
+    filteredScriptNames := [] ; Remove "ignore list" items from array. 
     for sname in scriptNames {
         shouldInclude := true
         for ignItem in ignoreList {
@@ -245,13 +257,9 @@ GetComboBoxList(scriptNames, preDefinedFilters) {
 
 justNames := GetComboBoxList(scriptNames, preDefinedFilters)
 
-
 ; Create the GUI
 GuiReady := 0
 myKeys := CreateGui(guiTitle, guiWidth, formColor, listColor, fontColor, fontSize, trans, maxRows, justNames, hotkeys, ahkFolder)
-
-; ShowMyKeysWrapper() ; build gui then hide, to force icons.
-; myKeys.Hide()
 
 SoundBeep 800, 300 ; Startup announcement.
 SoundBeep 1000, 300
@@ -289,7 +297,7 @@ CreateGui(guiTitle, guiWidth, formColor, listColor, fontColor, fontSize, trans, 
     myKeys.hkList.ModifyCol(3, guiWidth)           ; Third column width: 1/4 of guiWidth
     ;myKeys.hkList.ModifyCol(3, guiWidth // 4)           ; Third column width: 1/4 of guiWidth
 
- ; Add context menu
+    ; Add context menu
     contextMenu := Menu()
     contextMenu.Add("Go to file location", (*) => GoToFileLocation(myKeys.hkList))
     myKeys.hkList.OnEvent("ContextMenu", (*) => contextMenu.Show())
@@ -307,13 +315,13 @@ CreateGui(guiTitle, guiWidth, formColor, listColor, fontColor, fontSize, trans, 
 ; The hotkeys and link files get added to the array when the script starts, but this
 ; function is re-ran each time the gui is re-shown.  
 showMyKeys(myKeys, guiTitle, guiWidth) {
-    global targetWindow := WinActive("A")   ; Get the handle of the currently active window
+    global targetWindow := WinActive("A") ; Get the handle of the currently active window
     global ThisWinTitle := ""
     try ThisWinTitle := WinGetTitle("ahk_id " targetWindow) ; remember win title so we can wait for it later...
     If debugMode = 1 {
         MsgBox "Target window: " ThisWinTitle
     }
-    If WinActive(guiTitle) {                ; Causes gui to hide, if already showing (I.e. toggle))
+    If WinActive(guiTitle) { ; Causes gui to hide, if already showing (I.e. toggle))
         myKeys.Hide()
         global targetWindow := ""
         Return
@@ -324,55 +332,63 @@ showMyKeys(myKeys, guiTitle, guiWidth) {
             filterChange(myKeys.hkFilter, myKeys.hkList, hotkeys, myKeys.StatBar, ahkFolder)
         }
         txtLbl.Text := "Filter then Enter, or Double-Click item.  Target: " ThisWinTitle
-        myKeys.Show("w" guiWidth + 28)      ; Increase by 28pix, so there's a margin around the controls.
+        myKeys.Show("w" guiWidth + 28) ; Increase by 28pix, so there's a margin around the controls.
         global targetWindow := ""
-        myKeys.hkFilter.Focus()             ; Focus filter box each time gui is shown. 
+        myKeys.hkFilter.Focus() ; Focus filter box each time gui is shown. 
     }
 }
 
 ; Combined function for populating and filtering the list.
 ; I had written this function to push a single line of text onto the array, for use
 ; in a ListBox.  When I prompted the AI to replace the ListBox with a ListView, it
-; also updated this function.  This function is really slow because of adding 
-; all if the app icons.
+; also updated this function.  This function used to be really slow because of adding 
+; all if the app icons.  That's why I made the iconCache.
 updateHkList(hkList, hotkeys, StatBar, ahkFolder, filter := "") {
-
     static il := IL_Create()
+    static Icons := Map()
 
-    static Icons := Map(
-        '.ahk', IL_Add(il,"C:\Program Files\Autohotkey\v2\Autohotkey64.exe")
-    )
-
-    if Icons.Count = 1
+    if Icons.Count = 0 {  ; First time setup
+        if FileExist(ahkIconPath)  ; Add AHK icon first
+            Icons['.ahk'] := IL_Add(il, ahkIconPath)
+        
         hkList.SetImageList(il)
-    
-    hkList.Delete()  ; Clear the list before populating
+    }
+
+    hkList.Delete()
     count := 0
     for item in hotkeys {
         if (filter = "" or InStr(item, filter, 0)) {
             parts := StrSplit(item, "::")
-            hotkey := Trim(parts[1], " `t;") ; Trim ';' from hotkey.
+            hotkey := Trim(parts[1], " `t;")
             action := parts[2]
             script := RegExReplace(action, ".*\[(.*)\]$", "$1")
             action := Trim(RegExReplace(action, "\s*\[.*\]$", ""), " `t;")
 
-            ; RaptorX (a human), with The Automator group added this icon part during an AHK Hero zoom call. 
+            ; Icon handling
             SplitPath script,,,&Ext
-
-            if Ext = 'ahk'
+            
+            if Ext = 'ahk' {
                 i_indx := Icons['.ahk']
-            else if !Icons.Has(script)
-                i_indx := Icons[script] := IL_Add(il, script)
-            else
-                i_indx := Icons[script]
+            } else {
+                iconPath := ExePathToIconPath(script)
+                if !Icons.Has(script) {
+                    if FileExist(iconPath)
+                        i_indx := Icons[script] := IL_Add(il, iconPath)
+                    else
+                        i_indx := Icons['.ahk'] ; Use AHK icon as fallback
+                } else {
+                    i_indx := Icons[script]
+                }
+            }
 
             hkList.Add('Icon' i_indx, hotkey, action, script)
             count++
         }
     }
+    
     if (count > 0)
-        hkList.Modify(1, "Select Focus")  ; Pre-select the first item if the list is not empty
-    StatBar.SetText("Showing " count " of " hotkeys.Length " items.") ; Update status bar
+        hkList.Modify(1, "Select Focus")
+    StatBar.SetText("Showing " count " of " hotkeys.Length " items.")
 }
 
 ; This function gets called whenever the filter box is updated (from typing in it).
