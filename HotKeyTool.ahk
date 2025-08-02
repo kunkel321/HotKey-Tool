@@ -5,7 +5,7 @@
 ; Title:	    HotKey-Tool:  A Lister, Filter'er, and Launcher.
 ; Author:	    Stephen Kunkel321
 ; Tools:        Claude.ai was used extensively.  AI-generated code is indicated below. 
-; Version:	    12-23-2024
+; Version:	    8-1-2025 
 ; GitHub:       https://github.com/kunkel321/HotKey-Tool
 ; AHK Forum:    https://www.autohotkey.com/boards/viewtopic.php?f=83&t=132224
 ; ========= INFORMATION ========================================================
@@ -62,7 +62,7 @@ preDefinedFilters := ["NirSoft","SysInternals","Portables","#","!+","!^","Link"]
 debugMode       := 0        ; 1=On.  Shows processes to be scanned, and target window.
 
 ahkFolder       := "D:\AutoHotkey" ; We'll find (recursively) the active hotkeys in scripts running from here.
-ignoreList      :=  ["AHK-ToolKit", "HotstringLib", "QuickPath", "mwClipboard", "ColorThemeInt.ahk", "HotKeyTool.ahk", "_jxon.ahk"] ; We'll skip scanning these script files for hotkeys...
+ignoreList      :=  ["AHK-ToolKit", "HotstringLib", "QuickPath", "mwClipboard", "ColorThemeInt.ahk", "HotKeyTool.ahk"] ; We'll skip scanning these script files for hotkeys...
 
 lnkFolders      :=  [       ; Each .lnk file in this folder(s) is added to list.
                     "D:\PortableApps\FavePortableLinks",    ; <-------------------------- Specific to Steve's computer! 
@@ -134,7 +134,8 @@ GetScriptNames(ahkFolder, ignoreList) {
                 ; Claude.ai wrote this regex.
                 if (RegExMatch(A_LoopReadLine, '#Include\s+"([^"]+\.ahk)"', &match)) {
                     SplitPath item,, &dir
-                    scriptNames.Push(dir "\" match[1]) ; Put folder path onto #Included files.
+                    incFile := StrReplace(match[1], "*i ", "") ; Remove "*i" if present
+                    scriptNames.Push(dir "\" incFile) ; Put folder path onto #Included files.
                 }
             }
         }
@@ -167,7 +168,9 @@ GetScriptNames(ahkFolder, ignoreList) {
 scriptNames := GetScriptNames(ahkFolder, ignoreList)
 
 If debugMode = 1 {
-	for idx, itm2 in scriptNames ; <---------- Leave here for debugging.
+    msgbox 'scriptNames arry lengh: ' scriptNames.Length
+	list2 := ""
+    for idx, itm2 in scriptNames ; <---------- Leave here for debugging.
 		list2 .= idx ") " itm2 "`n"
 	MsgBox "Scripts that we will scan for hotkeys`n`n" list2
 }
